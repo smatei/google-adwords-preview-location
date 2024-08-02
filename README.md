@@ -1,4 +1,4 @@
-# Google Adwords Preview Location
+# Google Adwords Preview Location Paramter (uule)
 
 
 Google Adwords API comes with a list of geotarget locations (countries, counties, cities, postal codes, airports, ...) regularly updated by Google.
