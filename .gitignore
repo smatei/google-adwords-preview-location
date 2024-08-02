@@ -1,0 +1,7 @@
+# Folders to ignore
+target/*
+
+# Files to ignore
+**/.settings
+**/.project
+**/.classpath
