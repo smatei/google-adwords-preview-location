@@ -26,6 +26,7 @@ import org.json.JSONObject;
 public class GoogleAdwordsLocationScript
 {
   private static final Logger logger = Logger.getLogger(GoogleAdwordsLocationScript.class.getName());
+  private static final String xrsfToken = "_Sdu5uPEfE8ZBLptPNb_hSrnw3Q:1745584763266";
 
   /**
    * Scrape uule parameter from the google anonymous preview tool script.
@@ -43,7 +44,6 @@ public class GoogleAdwordsLocationScript
     String serviceURL = "https://ads.google.com/aw_anonymous_diagnostic/_/rpc/PreviewService/GetPreviewAnonymous";
     HttpPost post = new HttpPost(serviceURL);
 
-    String xrsfToken = "PQ8yWbxL8pfyq3vRtE479T_v3PI:1722504614381";
     String locationJson = "{\"2\":\"hotel\",\"4\":{\"2\":\"af\",\"3\":\"" + locationId +
         "\",\"5\":\"30001\",\"6\":\"610446\",\"7\":{\"1\":\"630153\",\"2\":\"630153\"}}}";
 
