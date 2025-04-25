@@ -27,9 +27,8 @@ public class App
     uule = GoogleAdwordsLocationScript.retrieveUULE(locationId);
     logger.info(locationId + " UULE = " + uule);
 
-    /*
-     * ProcessGeoLocationFile fileProcessor = new ProcessGeoLocationFile("geotargets-2024-07-11.csv", "geotargets-2024-07-11-with-uule.csv");
-     * fileProcessor.processFile();
-     */
+    //    ProcessGeoLocationFile fileProcessor = new ProcessGeoLocationFile("geotargets-2025-04-01.csv", "geotargets-2025-04-01-with-uule.csv",
+    //        "geotargets-2024-07-11-with-uule.csv");
+    //    fileProcessor.processFile();
   }
 }
