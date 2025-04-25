@@ -30,7 +30,7 @@ In order to retrieve the list of all the locations parameters for all the active
 
 [https://ads.google.com/anon/AdPreview](https://ads.google.com/anon/AdPreview)
 
-We might need to refresh the 
+We might need to refresh the x-framework-xsrf-token (GoogleAdwordsLocationScript.xrsfToken). We can do that in a browser, accessing the Anonymous Ad Preview Tool, adding some location:
 
 ![image](https://github.com/user-attachments/assets/637384fa-cdcd-4730-ae50-101fb37a9db9)
 
