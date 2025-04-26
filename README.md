@@ -61,7 +61,7 @@ receive the response, parse the uule, and then append the uule location as a sep
 "1000042","Mar del Plata","Mar del Plata,Buenos Aires Province,Argentina","20009","AR","City",Active,w+CAIQIFISCQlC0xlN2YSVESbR_kuAcJbd
 ```
 
-But this can take a while and I have already done this (geotargets-2024-07-11-with-uule.csv). If you want only one location, please use GoogleAdwordsLocationScript.retrieveUULE method.
+But this can take a while and I have already done this (geotargets-2025-04-01-with-uule.csv). If you want only one location, please use GoogleAdwordsLocationScript.retrieveUULE method.
 
 ## Compile
 
