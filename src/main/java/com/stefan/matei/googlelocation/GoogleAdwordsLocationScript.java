@@ -26,7 +26,7 @@ import org.json.JSONObject;
 public class GoogleAdwordsLocationScript
 {
   private static final Logger logger = Logger.getLogger(GoogleAdwordsLocationScript.class.getName());
-  private static final String xrsfToken = "_Sdu5uPEfE8ZBLptPNb_hSrnw3Q:1745584763266";
+  private static final String xrsfToken = "NzXyIZwzcTeRKcohl6lvYkeH2y8:1763019186541";
 
   /**
    * Scrape uule parameter from the google anonymous preview tool script.
