@@ -79,7 +79,7 @@ public class ProcessGeoLocationFile
               writer.println(line + "," + uule);
             }
           }
-          catch (ParseException | JSONException e)
+          catch (ParseException | JSONException | IOException e)
           {
             logger.log(Level.SEVERE, "Error retrieving uule parameter for " + locationId, e);
           }
