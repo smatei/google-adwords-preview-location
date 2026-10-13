@@ -30,10 +30,15 @@ In order to retrieve the list of all the locations parameters for all the active
 
 [https://ads.google.com/anon/AdPreview](https://ads.google.com/anon/AdPreview)
 
-We might need to refresh the x-framework-xsrf-token (GoogleAdwordsLocationScript.xrsfToken). We can do that in a browser, accessing the Anonymous Ad Preview Tool, adding some location:
+The project now fetches a fresh `x-framework-xsrf-token` automatically with Playwright and Chromium, so you no longer need to copy it manually from the browser.
+
+On the first call to `GoogleAdwordsLocationScript.retrieveUULE(...)`, `XsrfTokenFetcher` opens the Anonymous Ad Preview Tool in a visible Chromium window, waits for the page to load, and captures the token from the first outgoing request that includes the `X-Framework-Xsrf-Token` header. Once captured, the listener is removed and the browser is closed.
+
+If you ever need to verify which token is being used, open the Anonymous Ad Preview Tool and look at any request under `aw_anonymous_diagnostic/_/rpc/` in the Network tab. The `X-Framework-Xsrf-Token` request header is the one the script now retrieves automatically:
 
 ![image](https://github.com/user-attachments/assets/637384fa-cdcd-4730-ae50-101fb37a9db9)
 
+If you want to force a new token for every run, simply restart the JVM — the token is requested again on the first `GoogleAdwordsLocationScript.retrieveUULE(...)` call.
 
 ProcessGeoLocationFile.java class will take an original google geotarget file, iterate all the lines
 

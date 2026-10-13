@@ -26,7 +26,7 @@ import org.json.JSONObject;
 public class GoogleAdwordsLocationScript
 {
   private static final Logger logger = Logger.getLogger(GoogleAdwordsLocationScript.class.getName());
-  private static final String xrsfToken = "tIiZkSs227ALCxr77EE9MNBWIDM:1781522089445";
+  private static String xrsfToken = null;
 
   /**
    * Scrape uule parameter from the google anonymous preview tool script.
@@ -40,6 +40,16 @@ public class GoogleAdwordsLocationScript
    */
   public static String retrieveUULE(String locationId) throws IOException, ParseException, JSONException
   {
+    if (xrsfToken == null)
+    {
+      xrsfToken = XsrfTokenFetcher.fetchFreshToken();
+      if (xrsfToken == null)
+      {
+        throw new IOException("Unable to obtain a fresh X-Framework-Xsrf-Token.");
+      }
+      logger.info("Using fresh X-Framework-Xsrf-Token.");
+    }
+
     int timeout = 30000;
     String serviceURL = "https://ads.google.com/aw_anonymous_diagnostic/_/rpc/PreviewService/GetPreviewAnonymous";
     HttpPost post = new HttpPost(serviceURL);
