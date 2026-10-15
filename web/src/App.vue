@@ -430,9 +430,10 @@ function aboutExampleUrl(example, cc) {
     </template>
 
     <template v-else>
-      <h1 v-if="countryByCode(routeCountry)?.name">
+      <h1 v-if="parsePath().view === 'country' && countryByCode(routeCountry)?.name">
         Google UULE for {{ countryByCode(routeCountry).name }}
       </h1>
+      <h1 v-else-if="parsePath().view === 'country'">Google UULE for {{ routeCountry }}</h1>
       <h1 v-else>Google UULE generator</h1>
 
       <p v-if="index">
