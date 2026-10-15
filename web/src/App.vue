@@ -7,6 +7,7 @@ const routeView = ref('home')
 const selectedCountry = ref('US')
 const aboutVariant = ref(0)
 const selectedTargetType = ref('')
+const tableExpanded = ref(false)
 
 const countryOpening = computed(() => {
   const c = countryByCode(routeCountry.value)
@@ -49,6 +50,9 @@ const countryData = ref([])
 const page = ref(1)
 const pageSize = 1000
 const query = ref('')
+const countryQuery = ref('')
+const countryDropdownOpen = ref(false)
+const selectedCountryLabel = ref('')
 const selectedLocation = ref(null)
 
 const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -135,6 +139,9 @@ onMounted(async () => {
   }
   routeCountry.value = cc
   selectedCountry.value = cc
+  const initialCountry = index.value.countries.find(c => c.code === cc)
+  selectedCountryLabel.value = initialCountry ? countryLabel(initialCountry) : cc
+  countryQuery.value = ''
   aboutVariant.value = variantFor(cc)
   await loadCountry(cc)
   hideLoadingScreen()
@@ -180,6 +187,16 @@ const targetTypes = computed(() => {
   return [...types].sort()
 })
 
+const filteredCountries = computed(() => {
+  if (!index.value) return []
+  const q = countryQuery.value.trim().toLowerCase()
+  if (!q) return index.value.countries
+  return index.value.countries.filter(c =>
+    c.name?.toLowerCase().startsWith(q) ||
+    c.code.toLowerCase().startsWith(q),
+  )
+})
+
 const filteredRows = computed(() => {
   if (!selectedTargetType.value) return countryData.value
   return countryData.value.filter(row => row[4] === selectedTargetType.value)
@@ -191,6 +208,9 @@ const paginatedRows = computed(() => {
   const start = (page.value - 1) * pageSize
   return filteredRows.value.slice(start, start + pageSize)
 })
+
+const isPreview = computed(() => !tableExpanded.value)
+const previewRows = computed(() => paginatedRows.value.slice(0, 4))
 
 watch(totalPages, (tp) => {
   if (page.value > tp) page.value = Math.max(1, tp)
@@ -255,6 +275,20 @@ function goToPage(n) {
 function setTargetType(type) {
   selectedTargetType.value = type
   page.value = 1
+}
+
+function selectCountry(code) {
+  if (!code) return
+  const c = index.value?.countries.find(x => x.code === code)
+  selectedCountryLabel.value = c ? countryLabel(c) : code
+  countryQuery.value = ''
+  countryDropdownOpen.value = false
+  const route = parsePath()
+  if (route.view === 'country') {
+    window.location.href = `${baseUrl}/country/${code.toLowerCase()}/`
+    return
+  }
+  selectedCountry.value = code
 }
 
 function allCountriesHref() {
@@ -388,13 +422,30 @@ function aboutExampleUrl(example, cc) {
       </p>
 
       <section class="controls">
-        <label>
+        <label class="country-search">
           Country
-          <select v-model="selectedCountry">
-            <option v-for="c in index.countries" :key="c.code" :value="c.code">
-              {{ countryLabel(c) }} ({{ c.count }})
-            </option>
-          </select>
+          <div class="country-combo">
+            <input
+              :value="countryDropdownOpen ? countryQuery : selectedCountryLabel"
+              type="text"
+              placeholder="Type a country name or code"
+              @focus="countryDropdownOpen = true; countryQuery = ''"
+              @blur="setTimeout(() => countryDropdownOpen = false, 250)"
+              @input="countryQuery = $event.target.value; countryDropdownOpen = true"
+              @keydown.enter.prevent="selectCountry(filteredCountries[0]?.code)"
+              @keydown.esc="countryDropdownOpen = false"
+            />
+            <ul v-if="countryDropdownOpen && filteredCountries.length" class="autocomplete country-autocomplete">
+              <li
+                v-for="c in filteredCountries"
+                :key="c.code"
+                @mousedown.prevent="selectCountry(c.code)"
+              >
+                {{ countryLabel(c) }} ({{ c.count }})
+              </li>
+            </ul>
+            <p v-else-if="countryDropdownOpen && countryQuery.trim() && !filteredCountries.length" class="no-results">No countries found</p>
+          </div>
         </label>
 
         <label v-if="targetTypes.length">
@@ -445,52 +496,90 @@ function aboutExampleUrl(example, cc) {
         <h2>Locations in {{ selectedCountry }}</h2>
         <p class="meta">{{ filteredRows.length }} locations | page {{ page }} of {{ totalPages }}</p>
 
-        <nav class="pagination">
-          <button :disabled="page <= 1" @click="goToPage(1)">First</button>
-          <button :disabled="page <= 1" @click="goToPage(page - 1)">Previous</button>
-          <span>Page {{ page }} of {{ totalPages }}</span>
-          <button :disabled="page >= totalPages" @click="goToPage(page + 1)">Next</button>
-          <button :disabled="page >= totalPages" @click="goToPage(totalPages)">Last</button>
-        </nav>
+        <template v-if="isPreview">
+          <div class="table-preview">
+            <table>
+              <thead>
+                <tr>
+                  <th>Criteria ID</th>
+                  <th>Name</th>
+                  <th>Canonical Name</th>
+                  <th>Parent ID</th>
+                  <th>Target Type</th>
+                  <th>Status</th>
+                  <th class="uule-col">UULE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in previewRows" :key="row[0]">
+                  <td>{{ row[0] }}</td>
+                  <td>{{ row[1] }}</td>
+                  <td>{{ row[2] }}</td>
+                  <td>{{ parent(row) }}</td>
+                  <td>{{ row[4] }}</td>
+                  <td>{{ row[5] }}</td>
+                  <td class="uule-col">
+                    <span class="uule nowrap">{{ uule(row) }}</span>
+                    <div class="uule-actions">
+                      <button v-if="uule(row)" @click="copyUule(row)">Copy</button>
+                      <a v-if="uule(row)" :href="testUrl(row)" target="_blank" rel="noopener">Test</a>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button class="expand-table" @click="tableExpanded = true">Show all {{ filteredRows.length }} locations</button>
+        </template>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Criteria ID</th>
-              <th>Name</th>
-              <th>Canonical Name</th>
-              <th>Parent ID</th>
-              <th>Target Type</th>
-              <th>Status</th>
-              <th class="uule-col">UULE</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in paginatedRows" :key="row[0]">
-              <td>{{ row[0] }}</td>
-              <td>{{ row[1] }}</td>
-              <td>{{ row[2] }}</td>
-              <td>{{ parent(row) }}</td>
-              <td>{{ row[4] }}</td>
-              <td>{{ row[5] }}</td>
-              <td class="uule-col">
-                <span class="uule nowrap">{{ uule(row) }}</span>
-                <div class="uule-actions">
-                  <button v-if="uule(row)" @click="copyUule(row)">Copy</button>
-                  <a v-if="uule(row)" :href="testUrl(row)" target="_blank" rel="noopener">Test</a>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <template v-else>
+          <nav class="pagination">
+            <button :disabled="page <= 1" @click="goToPage(1)">First</button>
+            <button :disabled="page <= 1" @click="goToPage(page - 1)">Previous</button>
+            <span>Page {{ page }} of {{ totalPages }}</span>
+            <button :disabled="page >= totalPages" @click="goToPage(page + 1)">Next</button>
+            <button :disabled="page >= totalPages" @click="goToPage(totalPages)">Last</button>
+          </nav>
 
-        <nav class="pagination">
-          <button :disabled="page <= 1" @click="goToPage(1)">First</button>
-          <button :disabled="page <= 1" @click="goToPage(page - 1)">Previous</button>
-          <span>Page {{ page }} of {{ totalPages }}</span>
-          <button :disabled="page >= totalPages" @click="goToPage(page + 1)">Next</button>
-          <button :disabled="page >= totalPages" @click="goToPage(totalPages)">Last</button>
-        </nav>
+          <table>
+            <thead>
+              <tr>
+                <th>Criteria ID</th>
+                <th>Name</th>
+                <th>Canonical Name</th>
+                <th>Parent ID</th>
+                <th>Target Type</th>
+                <th>Status</th>
+                <th class="uule-col">UULE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in paginatedRows" :key="row[0]">
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ parent(row) }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+                <td class="uule-col">
+                  <span class="uule nowrap">{{ uule(row) }}</span>
+                  <div class="uule-actions">
+                    <button v-if="uule(row)" @click="copyUule(row)">Copy</button>
+                    <a v-if="uule(row)" :href="testUrl(row)" target="_blank" rel="noopener">Test</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <nav class="pagination">
+            <button :disabled="page <= 1" @click="goToPage(1)">First</button>
+            <button :disabled="page <= 1" @click="goToPage(page - 1)">Previous</button>
+            <span>Page {{ page }} of {{ totalPages }}</span>
+            <button :disabled="page >= totalPages" @click="goToPage(page + 1)">Next</button>
+            <button :disabled="page >= totalPages" @click="goToPage(totalPages)">Last</button>
+          </nav>
+        </template>
       </section>
     </template>
 
@@ -583,9 +672,24 @@ select, input[type="text"] {
   font-size: 1rem;
 }
 
-.search {
+.search,
+.country-search {
   position: relative;
   min-width: 300px;
+}
+
+.country-combo {
+  position: relative;
+}
+
+.country-combo input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.country-autocomplete {
+  max-height: 220px;
+  overflow-y: auto;
 }
 
 .autocomplete {
@@ -706,6 +810,28 @@ th {
   align-items: center;
   justify-content: center;
   margin: 1rem 0;
+}
+
+.expand-table {
+  margin: 0.5rem 0 1rem;
+}
+
+.table-preview {
+  max-height: 320px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.table-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.95));
+  pointer-events: none;
 }
 
 button {
