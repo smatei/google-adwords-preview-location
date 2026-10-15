@@ -83,12 +83,22 @@ for (const r of rows) {
 rmSync(outDir, { recursive: true, force: true })
 mkdirSync(outDir, { recursive: true })
 
-const countries = [...byCountry.keys()].sort().map((code) => {
-  writeFileSync(join(outDir, `${code}.json`), JSON.stringify(byCountry.get(code)))
-  return { code, name: countryNameByCode.get(code) || null, count: byCountry.get(code).length }
-})
+const displayNames = new Intl.DisplayNames(['en'], { type: 'region' })
+
+const countries = [...byCountry.keys()]
+  .sort()
+  .map((code) => {
+    const name = countryNameByCode.get(code) || null
+    return { code, name, count: byCountry.get(code).length }
+  })
+  .filter((c) => c.name)
 
 const total = countries.reduce((s, c) => s + c.count, 0)
+
+for (const c of countries) {
+  writeFileSync(join(outDir, `${c.code}.json`), JSON.stringify(byCountry.get(c.code)))
+}
+
 writeFileSync(
   join(outDir, 'index.json'),
   JSON.stringify({

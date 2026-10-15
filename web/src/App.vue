@@ -3,8 +3,48 @@ import { ref, computed, watch, onMounted } from 'vue'
 
 const index = ref(null)
 const routeCountry = ref('')
+const routeView = ref('home')
 const selectedCountry = ref('US')
+const aboutVariant = ref(0)
 const selectedTargetType = ref('')
+
+const countryOpening = computed(() => {
+  const c = countryByCode(routeCountry.value)
+  if (!c) return ''
+  const rows = countryData.value
+  const typeList = buildTypeList(rows)
+  const N = rows.length
+  const variants = [
+    `Google Ads lists ${fmt(N)} geotarget locations in ${c.name} (${c.code}), including ${typeList}. This page gives the uule parameter for each of them, so you can see Google Search results as they appear in any of these places.`,
+    `There are ${fmt(N)} Google Ads geotarget locations for ${c.name} (${c.code}): ${typeList}. Below you will find the Criteria ID, canonical name and uule value of every one of them.`,
+    `This page covers all ${fmt(N)} locations that Google Ads can target in ${c.name} (${c.code}), including ${typeList}. Each one comes with the uule value Google uses to localize search results for that place.`,
+  ]
+  return variants[aboutVariant.value]
+})
+
+const countryUsage = computed(() => {
+  const c = countryByCode(routeCountry.value)
+  if (!c) return ''
+  const example = pickExample(countryData.value)
+  if (!example) return ''
+  const cc = c.code.toLowerCase()
+  const exampleName = example[1]
+  const exampleCanonical = example[2]
+  const exampleUule = example[6]
+  const exampleUrl = aboutExampleUrl(example, cc)
+  const variants = [
+    `For example, ${exampleName} (${exampleCanonical}) has the uule ${exampleUule}. Add it to a search URL to see local results from there: restaurants as seen from ${exampleName}.`,
+    `To localize a search, append the uule of the place you want. The value for ${exampleName} is ${exampleUule}, and this search shows restaurants as Google returns them to a user there.`,
+    `Each uule works as a URL parameter. Using ${exampleName} as an example, its value is ${exampleUule}, and the resulting query is a Google search for restaurants from ${exampleName}.`,
+  ]
+  return variants[aboutVariant.value]
+})
+
+const countryRemovalSentence = computed(() => {
+  const removal = countryData.value.filter(row => row[5] === 'Removal Planned').length
+  if (removal <= 0) return ''
+  return `${fmt(removal)} of these locations are marked Removal Planned and have no uule; Google is retiring them as targeting options. `
+})
 const countryData = ref([])
 const page = ref(1)
 const pageSize = 1000
@@ -47,19 +87,45 @@ function updateUrl() {
   window.history.replaceState({}, '', url)
 }
 
+function setDocumentTitle() {
+  const route = parsePath()
+  if (route.view === 'countries') {
+    document.title = 'All countries - Google UULE generator'
+    return
+  }
+  if (route.view === 'country') {
+    const c = index.value?.countries.find(c => c.code === route.country)
+    const name = c?.name || route.country
+    document.title = `Google UULE for ${name} - ${c?.count ?? ''} AdWords geotarget locations`.replace(/\s*-\s*$/, '')
+    return
+  }
+  document.title = 'Google UULE generator'
+}
+
+function hideLoadingScreen() {
+  const loading = document.getElementById('loading')
+  if (loading) loading.hidden = true
+}
+
 onMounted(async () => {
   const route = parsePath()
+  routeView.value = route.view
   const initial = getInitialParams()
   page.value = initial.page
   selectedTargetType.value = initial.targetType
 
   const res = await fetch(`${import.meta.env.BASE_URL}data/index.json`)
-  if (!res.ok) return
+  if (!res.ok) {
+    hideLoadingScreen()
+    return
+  }
   index.value = await res.json()
+  setDocumentTitle()
 
   if (route.view === 'countries') {
     routeCountry.value = ''
     selectedCountry.value = ''
+    hideLoadingScreen()
     return
   }
 
@@ -69,7 +135,9 @@ onMounted(async () => {
   }
   routeCountry.value = cc
   selectedCountry.value = cc
-  loadCountry(cc)
+  aboutVariant.value = variantFor(cc)
+  await loadCountry(cc)
+  hideLoadingScreen()
 })
 
 watch(selectedCountry, (cc, oldCc) => {
@@ -86,6 +154,7 @@ watch(selectedCountry, (cc, oldCc) => {
   }
 
   routeCountry.value = cc
+  aboutVariant.value = variantFor(cc)
   loadCountry(cc)
   updateUrl()
 })
@@ -98,7 +167,11 @@ async function loadCountry(cc) {
     return
   }
   const res = await fetch(`${import.meta.env.BASE_URL}data/${cc}.json`)
-  if (res.ok) countryData.value = await res.json()
+  if (res.ok) {
+    countryData.value = await res.json()
+  } else {
+    countryData.value = []
+  }
 }
 
 const targetTypes = computed(() => {
@@ -157,7 +230,7 @@ function uule(row) {
 }
 
 function testUrl(row) {
-  return `https://www.google.com/search?q=${encodeURIComponent(row[1])}&uule=${encodeURIComponent(uule(row))}`
+  return `https://www.google.com/search?q=${encodeURIComponent(row[1])}&uule=${uule(row)}`
 }
 
 async function copyUule(row) {
@@ -199,6 +272,64 @@ function csvSourceHref() {
 function csvRawHref() {
   return `https://raw.githubusercontent.com/smatei/google-adwords-preview-location/refs/heads/main/${index.value?.source || ''}`
 }
+
+function fmt(n) {
+  return Number(n).toLocaleString('en-US')
+}
+
+function sourceDate(source) {
+  const m = String(source).match(/\d{4}-\d{2}-\d{2}/)
+  return m ? m[0] : ''
+}
+
+function pluralizeType(type, count) {
+  const pluralMap = {
+    'City': 'cities',
+    'County': 'counties',
+    'Municipality': 'municipalities',
+    'Territory': 'territories',
+    'Union Territory': 'union territories',
+  }
+  const plural = pluralMap[type] || `${type.toLowerCase()}s`
+  return count === 1 ? type.toLowerCase() : plural
+}
+
+function buildTypeList(rows) {
+  const counts = new Map()
+  for (const row of rows) {
+    const t = row[4]
+    counts.set(t, (counts.get(t) || 0) + 1)
+  }
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4)
+  if (sorted.length === 0) return ''
+  if (sorted.length === 1) {
+    const [type, count] = sorted[0]
+    return `${fmt(count)} ${pluralizeType(type, count)}`
+  }
+  const parts = sorted.map(([type, count]) => `${fmt(count)} ${pluralizeType(type, count)}`)
+  if (parts.length === 2) {
+    return `${parts[0]} and ${parts[1]}`
+  }
+  return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
+}
+
+function pickExample(rows) {
+  const city = rows.find(row => row[5] === 'Active' && row[4] === 'City')
+  if (city) return city
+  const active = rows.find(row => row[5] === 'Active')
+  return active || rows[0]
+}
+
+function variantFor(code) {
+  let sum = 0
+  for (const ch of code) sum += ch.charCodeAt(0)
+  return sum % 3
+}
+
+function aboutExampleUrl(example, cc) {
+  return `https://www.google.com/search?q=restaurants&uule=${example[6]}&gl=${cc}&hl=en`
+}
+
 </script>
 
 <template>
@@ -218,6 +349,13 @@ function csvRawHref() {
     <template v-else-if="parsePath().view === 'countries'">
       <h1>All countries</h1>
       <p class="meta">{{ index.total }} locations across {{ index.countries.length }} countries</p>
+
+      <section id="about" class="about">
+        <h2>Google Ads locations by country</h2>
+        <p>The table lists all {{ fmt(index.countries.length) }} countries and territories in the Google Ads geotargets file, with the number of targetable locations in each one. Open a country to see every location with its Criteria ID, canonical name, target type and <code>uule</code> value.</p>
+        <p>The number of locations varies a lot between countries. Large markets include cities, counties, postal codes, neighborhoods and airports, while small territories may have only a few entries.</p>
+        <p class="disclaimer">Data source: <code>{{ index.source }}</code>. Not affiliated with Google.</p>
+      </section>
 
       <table class="countries-table">
         <thead>
@@ -355,6 +493,47 @@ function csvRawHref() {
         </nav>
       </section>
     </template>
+
+    <section id="about" class="about" v-if="index">
+      <template v-if="routeView === 'country' && countryByCode(routeCountry)">
+        <h2>Google uule values for {{ countryByCode(routeCountry).name }}</h2>
+        <p>{{ countryOpening }}</p>
+        <p>{{ countryUsage }}</p>
+        <p>{{ countryRemovalSentence }}Use the search box to find a place by name, or filter by target type. Set gl={{ routeCountry.toLowerCase() }} to match the country when you build your own Google URLs.</p>
+        <p><a :href="allCountriesHref()">Browse all countries</a> &middot; <a :href="homeHref()">What is the uule parameter?</a></p>
+      </template>
+
+      <template v-else>
+        <h2>What is the Google uule parameter?</h2>
+        <p><code>uule</code> is a URL parameter that tells Google Search which location a query should be treated as coming from. Adding <code>&amp;uule=...</code> to a <code>google.com/search</code> URL shows the local results a person in that city, region or postal code would see, without a VPN or proxy in that place.</p>
+        <p>This site lists the <code>uule</code> value for every location in the official Google Ads geotargets file: {{ fmt(index.total) }} locations in {{ fmt(index.countries.length) }} countries and territories.</p>
+
+        <h2>Where the values come from</h2>
+        <p>Google publishes the list of locations that advertisers can target as a CSV file. Each location has a <strong>Criteria ID</strong>, a name, a canonical name such as <code>Lujan,Buenos Aires Province,Argentina</code>, a parent location, a target type and a status.</p>
+        <p>For each active location, the <code>uule</code> value was obtained from Google&rsquo;s own ad preview tool, so it is exactly the value Google uses for that Criteria ID. The current data comes from <code>{{ index.source }}</code>, the geotargets file published on {{ sourceDate(index.source) }}. Locations marked <em>Removal Planned</em> are listed but have no <code>uule</code>.</p>
+
+        <h2>How to use it</h2>
+        <ol>
+          <li>Choose a country, or open its page from <a :href="allCountriesHref()">All countries</a>.</li>
+          <li>Find the location with the search box or the target type filter.</li>
+          <li>Click <strong>Copy</strong> to copy its <code>uule</code>, or <strong>Test</strong> to open a Google search from that location.</li>
+          <li>Add it to your own search URLs: <code>https://www.google.com/search?q=pizza&amp;uule=VALUE&amp;gl=us&amp;hl=en</code>. Always URL-encode the value.</li>
+        </ol>
+
+        <h2>Who is this for?</h2>
+        <p>SEO specialists checking local rankings, developers building rank trackers or scrapers, and anyone who needs to see Google results as they appear somewhere else. Many SERP API providers identify locations by the same Google Ads Criteria IDs and canonical names, so this table maps each of them directly to the matching <code>uule</code>.</p>
+
+        <h2>Frequently asked questions</h2>
+        <h3>Do uule values change?</h3>
+        <p>Rarely. Between the June and August 2026 geotargets files, none of the values for locations present in both files changed. New locations are added when Google publishes a new file.</p>
+        <h3>Why does a location have no uule?</h3>
+        <p>Its status is <em>Removal Planned</em>: Google is retiring it as a targeting option. Use its parent location or a nearby active location instead.</p>
+        <h3>Can I download the full list?</h3>
+        <p>Yes. The complete CSV with a <code>uule</code> column is available in the <a href="https://github.com/smatei/google-adwords-preview-location">GitHub repository</a>, together with the code that generates it.</p>
+
+        <p class="disclaimer">This is an independent project and is not affiliated with or endorsed by Google.</p>
+      </template>
+    </section>
   </main>
 </template>
 

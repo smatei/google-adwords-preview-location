@@ -8,3 +8,4 @@
 *.html text eol=crlf
 *.xml text eol=crlf
 *.css text eol=crlf
+* text=auto eol=crlf

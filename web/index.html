@@ -4,9 +4,115 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Google UULE generator</title>
+    <style>
+.about {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  line-height: 1.6;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.about h2 {
+  font-size: 1.3rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.about h3 {
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.about code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #f2f2f2;
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.about a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.about a:hover {
+  text-decoration: underline;
+}
+
+.about .disclaimer {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+#app:empty {
+  display: none;
+}
+
+#app .seo-fallback {
+  display: none;
+}
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #fff;
+  z-index: 1000;
+}
+
+.loading-screen[hidden] {
+  display: none;
+}
+
+.loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0.25rem solid #e9ecef;
+  border-top-color: #0066cc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+    </style>
   </head>
   <body>
     <div id="app"></div>
+    <div id="loading" class="loading-screen">
+      <div class="loading-spinner"></div>
+      <p>Loading Google UULE data...</p>
+    </div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+      (function () {
+        const loading = document.getElementById('loading');
+        const app = document.getElementById('app');
+        function hideLoading() {
+          if (loading) loading.hidden = true;
+        }
+        function maybeHide() {
+          if (app && app.childElementCount > 0 && app.innerHTML.trim() !== '') {
+            hideLoading();
+          }
+        }
+        const observer = new MutationObserver(maybeHide);
+        observer.observe(app, { childList: true, subtree: true });
+        window.addEventListener('load', function () {
+          setTimeout(maybeHide, 50);
+        });
+      })();
+    </script>
   </body>
 </html>
