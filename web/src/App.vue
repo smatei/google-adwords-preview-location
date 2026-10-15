@@ -218,7 +218,7 @@ watch(totalPages, (tp) => {
 
 const autocompleteMatches = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q || !countryData.value.length) return []
+  if (!q || !countryData.value.length || q.length < 3) return []
   const numericId = /^(\d+)$/.test(q) ? Number(q) : null
   if (numericId) {
     const exact = countryData.value.find(row => row[0] === numericId)
