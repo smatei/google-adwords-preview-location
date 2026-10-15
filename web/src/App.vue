@@ -62,7 +62,7 @@ function selectLocation(row) {
 }
 
 function countryLabel(c) {
-  return c.name ? `${c.code} â€” ${c.name}` : c.code
+  return c.name ? `${c.code} — ${c.name}` : c.code
 }
 
 function parent(row) {
@@ -79,9 +79,9 @@ function uule(row) {
     <h1>Google UULE generator</h1>
 
     <p v-if="index">
-      Source: {{ index.source }} Â· {{ index.total }} locations Â· {{ index.countries.length }} countries
+      Source: {{ index.source }} · {{ index.total }} locations · {{ index.countries.length }} countries
     </p>
-    <p v-else>Loading dataâ€¦</p>
+    <p v-else>Loading data…</p>
 
     <section v-if="index" class="controls">
       <label>
@@ -102,7 +102,7 @@ function uule(row) {
             :key="row[0]"
             @click="selectLocation(row)"
           >
-            {{ row[1] }} â€” {{ row[2] }}
+            {{ row[1] }} — {{ row[2] }}
           </li>
         </ul>
         <p v-else-if="query.trim() && !autocompleteMatches.length" class="no-results">No matches</p>
@@ -124,7 +124,7 @@ function uule(row) {
 
     <section v-if="countryData.length">
       <h2>Locations in {{ selectedCountry }}</h2>
-      <p class="meta">{{ countryData.length }} locations Â· page {{ page }} of {{ totalPages }}</p>
+      <p class="meta">{{ countryData.length }} locations · page {{ page }} of {{ totalPages }}</p>
 
       <table>
         <thead>
