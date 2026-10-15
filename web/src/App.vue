@@ -216,6 +216,14 @@ watch(totalPages, (tp) => {
   if (page.value > tp) page.value = Math.max(1, tp)
 })
 
+const searchIndex = computed(() => {
+  return countryData.value.map(row => ({
+    row,
+    name: row[1].toLowerCase(),
+    canonical: row[2].toLowerCase(),
+  }))
+})
+
 const autocompleteMatches = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q || !countryData.value.length || q.length < 3) return []
@@ -224,9 +232,14 @@ const autocompleteMatches = computed(() => {
     const exact = countryData.value.find(row => row[0] === numericId)
     if (exact) return [exact]
   }
-  return countryData.value
-    .filter(row => row[1].toLowerCase().startsWith(q) || row[2].toLowerCase().startsWith(q))
-    .slice(0, 20)
+  const matches = []
+  for (const item of searchIndex.value) {
+    if (item.name.startsWith(q) || item.canonical.startsWith(q)) {
+      matches.push(item.row)
+      if (matches.length >= 20) break
+    }
+  }
+  return matches
 })
 
 function selectLocation(row) {
@@ -466,7 +479,7 @@ function aboutExampleUrl(example, cc) {
         <label class="search">
           Search location
           <input v-model="query" type="text" placeholder="e.g. New York" />
-          <ul v-if="query.trim() && autocompleteMatches.length" class="autocomplete">
+          <ul v-if="query.trim().length >= 3 && autocompleteMatches.length" class="autocomplete">
             <li
               v-for="row in autocompleteMatches"
               :key="row[0]"
@@ -475,7 +488,8 @@ function aboutExampleUrl(example, cc) {
               {{ row[1] }} - {{ row[2] }} ({{ row[4] }})
             </li>
           </ul>
-          <p v-else-if="query.trim() && !autocompleteMatches.length" class="no-results">No matches</p>
+          <p v-else-if="query.trim() && query.trim().length < 3" class="no-results">Type at least 3 characters to search</p>
+          <p v-else-if="query.trim().length >= 3 && !autocompleteMatches.length" class="no-results">No matches</p>
         </label>
       </section>
 
