@@ -219,6 +219,11 @@ watch(totalPages, (tp) => {
 const autocompleteMatches = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q || !countryData.value.length) return []
+  const numericId = /^(\d+)$/.test(q) ? Number(q) : null
+  if (numericId) {
+    const exact = countryData.value.find(row => row[0] === numericId)
+    if (exact) return [exact]
+  }
   return countryData.value
     .filter(row => row[1].toLowerCase().startsWith(q) || row[2].toLowerCase().startsWith(q))
     .slice(0, 20)
@@ -250,7 +255,7 @@ function uule(row) {
 }
 
 function testUrl(row) {
-  return `https://www.google.com/search?q=${encodeURIComponent(row[1])}&uule=${uule(row)}`
+  return `https://www.google.com/search?q=pizza&uule=${uule(row)}`
 }
 
 async function copyUule(row) {
