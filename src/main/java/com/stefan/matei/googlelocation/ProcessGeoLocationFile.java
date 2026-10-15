@@ -10,7 +10,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,11 +38,18 @@ public class ProcessGeoLocationFile
     this.geoLocationInputFile = geoLocationInputFile;
     this.geoLocationOutputFile = geoLocationOutputFile;
 
-    loadPreviousUULEMap(previousUULSGeoFile);
+    // Load already-computed UULEs from the destination file (if it exists) so
+    // repeated runs resume from where they left off.
+    loadPreviousUULEMap(geoLocationOutputFile);
+    // Also merge any older reference file passed in, without overwriting existing values.
+    loadPreviousUULEMap(previousUULSGeoFile, false);
   }
 
   public void processFile()
   {
+    Set<String> expectedActiveIds = new HashSet<>();
+    Set<String> writtenActiveIds = new HashSet<>();
+
     try (BufferedReader reader = new BufferedReader(
         new InputStreamReader(new FileInputStream(geoLocationInputFile), "UTF-8"));
         PrintWriter writer = new PrintWriter(new OutputStreamWriter(
@@ -65,6 +74,7 @@ public class ProcessGeoLocationFile
         if (line.endsWith("Active"))
         {
           String locationId = line.substring(1, line.indexOf("\","));
+          expectedActiveIds.add(locationId);
           System.out.println(locationId);
           try
           {
@@ -77,6 +87,7 @@ public class ProcessGeoLocationFile
             if (uule != null)
             {
               writer.println(line + "," + uule);
+              writtenActiveIds.add(locationId);
             }
           }
           catch (ParseException | JSONException | IOException e)
@@ -94,16 +105,47 @@ public class ProcessGeoLocationFile
     {
       logger.log(Level.SEVERE, "Error processing geolocation file", e);
     }
+
+    validate(expectedActiveIds, writtenActiveIds);
+  }
+
+  private void validate(Set<String> expectedActiveIds, Set<String> writtenActiveIds)
+  {
+    logger.info("Validation: expected active locations = " + expectedActiveIds.size()
+        + ", written active locations = " + writtenActiveIds.size());
+
+    if (expectedActiveIds.size() != writtenActiveIds.size())
+    {
+      Set<String> missing = new HashSet<>(expectedActiveIds);
+      missing.removeAll(writtenActiveIds);
+      logger.warning("Validation FAILED: missing active locations = " + missing.size());
+      for (String id : missing)
+      {
+        logger.warning("Missing location id: " + id);
+      }
+    }
+    else
+    {
+      logger.info("Validation PASSED: all active locations are present in the destination file.");
+    }
   }
 
   private void loadPreviousUULEMap(String previousUULSGeoFile) throws FileNotFoundException, IOException
+  {
+    loadPreviousUULEMap(previousUULSGeoFile, true);
+  }
+
+  private void loadPreviousUULEMap(String previousUULSGeoFile, boolean reset) throws FileNotFoundException, IOException
   {
     if (previousUULSGeoFile == null)
     {
       return;
     }
 
-    previousUULSGeoMap = new HashMap<>();
+    if (reset || previousUULSGeoMap == null)
+    {
+      previousUULSGeoMap = new HashMap<>();
+    }
 
     try (BufferedReader reader = new BufferedReader(new FileReader(previousUULSGeoFile)))
     {
@@ -114,7 +156,10 @@ public class ProcessGeoLocationFile
         String id = line.substring(1, line.indexOf(",") - 1);
         String uule = line.substring(line.lastIndexOf(",") + 1);
 
-        previousUULSGeoMap.put(id, uule);
+        if (uule != null && !uule.trim().isEmpty())
+        {
+          previousUULSGeoMap.put(id, uule);
+        }
       }
     }
   }

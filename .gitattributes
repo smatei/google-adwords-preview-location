@@ -1,0 +1,2 @@
+# Force Java source files to use Windows line endings in the working tree.
+*.java text eol=crlf
