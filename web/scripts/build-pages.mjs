@@ -26,6 +26,10 @@ let indexHtml = readFileSync(indexHtmlPath, 'utf8')
 
 const indexJson = JSON.parse(readFileSync(join(dataDir, 'index.json'), 'utf8'))
 const countries = indexJson.countries || []
+const sourceFile = indexJson.source || ''
+const csvUrl = sourceFile
+  ? `https://github.com/smatei/google-adwords-preview-location/blob/main/${sourceFile}`
+  : ''
 
 function escapeHtml(text) {
   return String(text)
@@ -37,6 +41,14 @@ function escapeHtml(text) {
 
 function buildPage({ title, description, canonical, countryHeading, countriesTable }) {
   let html = indexHtml
+
+  const rawUrl = sourceFile
+    ? `https://raw.githubusercontent.com/smatei/google-adwords-preview-location/refs/heads/main/${sourceFile}`
+    : ''
+
+  const sourceLink = csvUrl
+    ? `<a href="${escapeHtml(csvUrl)}" target="_blank" rel="noopener">Source: ${escapeHtml(sourceFile)}</a> | <a href="${escapeHtml(rawUrl)}" target="_blank" rel="noopener">raw</a>`
+    : ''
 
   html = html.replace(
     /<title>.*?\/<title>/,
@@ -65,6 +77,13 @@ function buildPage({ title, description, canonical, countryHeading, countriesTab
 
   const fallback = []
   fallback.push(`<div class="seo-fallback">`)
+  fallback.push(`  <nav class="top-nav">`)
+  fallback.push(`    <a href="${basePath}/">Home</a>`)
+  fallback.push(`    <span class="sep">&middot;</span>`)
+  fallback.push(`    <a href="${basePath}/countries/">All countries</a>`)
+  fallback.push(`    <span class="sep">&middot;</span>`)
+  fallback.push(`    ${sourceLink || 'Source data'}`)
+  fallback.push(`  </nav>`)
   if (countryHeading) {
     fallback.push(`  <h1>${escapeHtml(countryHeading)}</h1>`)
   }

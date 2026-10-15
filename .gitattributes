@@ -4,3 +4,7 @@
 *.js text eol=crlf
 *.mjs text eol=crlf
 *.cjs text eol=crlf
+*.json text eol=crlf
+*.html text eol=crlf
+*.xml text eol=crlf
+*.css text eol=crlf

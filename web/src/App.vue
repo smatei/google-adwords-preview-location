@@ -80,7 +80,7 @@ watch(selectedCountry, (cc, oldCc) => {
   selectedTargetType.value = ''
 
   const route = parsePath()
-  if (route.view === 'country') {
+  if (route.view === 'country' && route.country !== cc) {
     window.location.href = `${baseUrl}/country/${cc.toLowerCase()}/`
     return
   }
@@ -191,14 +191,26 @@ function allCountriesHref() {
 function homeHref() {
   return `${baseUrl}/`
 }
+
+function csvSourceHref() {
+  return `https://github.com/smatei/google-adwords-preview-location/blob/main/${index.value?.source || ''}`
+}
+
+function csvRawHref() {
+  return `https://raw.githubusercontent.com/smatei/google-adwords-preview-location/refs/heads/main/${index.value?.source || ''}`
+}
 </script>
 
 <template>
   <main>
-    <nav class="top-nav">
+    <nav class="top-nav" v-if="index">
       <a :href="homeHref()">Home</a>
       <span class="sep">&middot;</span>
       <a :href="allCountriesHref()">All countries</a>
+      <span class="sep">&middot;</span>
+      <a :href="csvSourceHref()" target="_blank" rel="noopener">Source: {{ index.source }}</a>
+      <span class="sep">&middot;</span>
+      <a :href="csvRawHref()" target="_blank" rel="noopener">raw</a>
     </nav>
 
     <div v-if="!index">Loading data...</div>
