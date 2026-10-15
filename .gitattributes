@@ -1,2 +1,6 @@
-# Force Java source files to use Windows line endings in the working tree.
+# Force Java, Vue and JavaScript source files to use Windows line endings in the working tree.
 *.java text eol=crlf
+*.vue text eol=crlf
+*.js text eol=crlf
+*.mjs text eol=crlf
+*.cjs text eol=crlf

@@ -56,6 +56,8 @@ for (const name of ['Criteria ID', 'Name', 'Canonical Name', 'Parent ID', 'Count
 }
 
 const byCountry = new Map()
+const countryNameByCode = new Map()
+
 for (const r of rows) {
   if (r.length < header.length) continue
   const cc = r[col['Country Code']] || 'XX'
@@ -69,6 +71,13 @@ for (const r of rows) {
     r[col['Status']],
     r[col['UULE']] || null,
   ])
+
+  if (r[col['Target Type']] === 'Country' && r[col['Status']] === 'Active' && !countryNameByCode.has(cc)) {
+    const canonical = r[col['Canonical Name']]
+    const parts = canonical ? canonical.split(',') : []
+    const name = parts.length ? parts[parts.length - 1].trim() : r[col['Name']]
+    countryNameByCode.set(cc, name)
+  }
 }
 
 rmSync(outDir, { recursive: true, force: true })
@@ -76,7 +85,7 @@ mkdirSync(outDir, { recursive: true })
 
 const countries = [...byCountry.keys()].sort().map((code) => {
   writeFileSync(join(outDir, `${code}.json`), JSON.stringify(byCountry.get(code)))
-  return { code, count: byCountry.get(code).length }
+  return { code, name: countryNameByCode.get(code) || null, count: byCountry.get(code).length }
 })
 
 const total = countries.reduce((s, c) => s + c.count, 0)
