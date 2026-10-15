@@ -472,7 +472,7 @@ function aboutExampleUrl(example, cc) {
               :key="row[0]"
               @click="selectLocation(row)"
             >
-              {{ row[1] }} - {{ row[2] }}
+              {{ row[1] }} - {{ row[2] }} ({{ row[4] }})
             </li>
           </ul>
           <p v-else-if="query.trim() && !autocompleteMatches.length" class="no-results">No matches</p>
