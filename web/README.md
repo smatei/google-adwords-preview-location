@@ -3,6 +3,8 @@
 Static Vue 3 + Vite site, published to GitHub Pages at
 https://smatei.github.io/google-adwords-preview-location/
 
+It is the UI layer over the latest Google Ads geotargets file enriched with UULE values: browse countries, search and filter locations by name or Criteria ID, copy the UULE parameter, and test it directly on Google Search.
+
 ## Local development
 
 ```bash

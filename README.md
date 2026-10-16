@@ -26,6 +26,14 @@ This can be useful when trying to scrape/check google results from a certain loc
 
 [https://valentin.app/uule.html](https://valentin.app/uule.html)
 
+## Web UI
+
+The project also includes a web interface that exposes the latest geotarget file with UULE values:
+
+**https://smatei.github.io/google-adwords-preview-location/**
+
+It lets you browse countries, search/filter locations, copy UULE parameters, and test them directly on Google Search.
+
 In order to retrieve the list of all the locations parameters for all the active locations in the latest geotarget file, I have used the Anonymous Ad Preview Tool
 
 [https://ads.google.com/anon/AdPreview](https://ads.google.com/anon/AdPreview)
